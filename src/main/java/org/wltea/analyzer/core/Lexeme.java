@@ -60,6 +60,8 @@ public class Lexeme implements Comparable<Lexeme>{
     private String lexemeText;
     //词元类型
     private int lexemeType;
+	// 是否为否定意思
+	private boolean negation;
     
     
 	public Lexeme(int offset , int begin , int length , int lexemeType){
@@ -187,6 +189,7 @@ public class Lexeme implements Comparable<Lexeme>{
 		if(lexemeText == null){
 			return "";
 		}
+
 		return lexemeText;
 	}
 
@@ -198,6 +201,14 @@ public class Lexeme implements Comparable<Lexeme>{
 			this.lexemeText = lexemeText;
 			this.length = lexemeText.length();
 		}
+	}
+
+	public void setNegation(boolean b){
+		this.negation = b;
+	}
+
+	public boolean getNegation(){
+		return this.negation;
 	}
 
 	/**

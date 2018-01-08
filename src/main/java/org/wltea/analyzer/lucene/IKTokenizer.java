@@ -38,6 +38,8 @@ import org.wltea.analyzer.core.Lexeme;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.util.*;
+
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 
 /**
@@ -62,6 +64,8 @@ public final class IKTokenizer extends Tokenizer {
 
    	private PositionIncrementAttribute posIncrAtt;
 
+   	private Set negations = new HashSet();
+
 
     /**
 	 * Lucene 4.0 Tokenizer适配器类构造函数
@@ -74,6 +78,13 @@ public final class IKTokenizer extends Tokenizer {
         posIncrAtt = addAttribute(PositionIncrementAttribute.class);
 
         _IKImplement = new IKSegmenter(input,configuration);
+
+		this.negations.add("无");
+		this.negations.add("未");
+		this.negations.add("否认");
+		this.negations.add("不");
+		this.negations.add("排除");
+		this.negations.add("阴性");
 	}
 
 	/* (non-Javadoc)
@@ -91,9 +102,17 @@ public final class IKTokenizer extends Tokenizer {
 
 			//将Lexeme转成Attributes
 			//设置词元文本
-			termAtt.append(nextLexeme.getLexemeText());
+			String s = nextLexeme.getLexemeText();
+			if(nextLexeme.getNegation() && !this.negations.contains(s)){
+				s = "无" + s;
+			}
+			termAtt.append(s);
 			//设置词元长度
-			termAtt.setLength(nextLexeme.getLength());
+			int l = nextLexeme.getLength();
+			if(nextLexeme.getNegation()){
+				l += 1;
+			}
+			termAtt.setLength(l);
 			//设置词元位移
             offsetAtt.setOffset(correctOffset(nextLexeme.getBeginPosition()), correctOffset(nextLexeme.getEndPosition()));
 

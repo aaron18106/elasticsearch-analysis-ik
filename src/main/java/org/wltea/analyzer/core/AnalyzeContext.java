@@ -26,11 +26,7 @@ package org.wltea.analyzer.core;
 
 import java.io.IOException;
 import java.io.Reader;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.wltea.analyzer.cfg.Configuration;
 import org.wltea.analyzer.dic.Dictionary;
@@ -76,7 +72,11 @@ class AnalyzeContext {
 	//分词器配置项
 	private Configuration cfg;
 
-    public AnalyzeContext(Configuration configuration){
+	private Set splitChars;
+	private String[] negation = new String[]{"无","未","否认","不","排除","阴性"};
+	// 无,未,否认,不,排除,阴性
+
+	public AnalyzeContext(Configuration configuration){
         this.cfg = configuration;
     	this.segmentBuff = new char[BUFF_SIZE];
     	this.charTypes = new int[BUFF_SIZE];
@@ -84,6 +84,14 @@ class AnalyzeContext {
     	this.orgLexemes = new QuickSortSet();
     	this.pathMap = new HashMap<Integer , LexemePath>();    	
     	this.results = new LinkedList<Lexeme>();
+
+		this.splitChars = new HashSet();
+		this.splitChars.add(',');
+		this.splitChars.add('.');
+		this.splitChars.add('，');
+		this.splitChars.add('。');
+		this.splitChars.add('；');
+		this.splitChars.add(';');
     }
     
     int getCursor(){
@@ -253,7 +261,32 @@ class AnalyzeContext {
 	 * 3.将map中不存在的CJDK字符以单字方式推入results
 	 */
 	void outputToResult(){
+		// 获取否定词覆盖区域
+		ArrayList neSplitIndex = new ArrayList();
+		ArrayList nePath = new ArrayList();
+		int i;
+		String s = "";
+
+		for(i=0;i<= this.cursor ;i++){
+			s += String.valueOf(this.segmentBuff[i]);
+			if(this.splitChars.contains(this.segmentBuff[i]) || i == this.cursor) {
+				neSplitIndex.add(i);
+				// 判断是否存在否定词;
+				boolean find = false;
+				for(int j=0;j< this.negation.length; j++){
+					if(s.indexOf(this.negation[j]) >= 0){
+						find = true;
+						break;
+					}
+				}
+
+				nePath.add(find);
+				s = "";
+			}
+		}
+
 		int index = 0;
+		int stackFlag = 0;
 		for( ; index <= this.cursor ;){
 			//跳过非CJK字符
 			if(CharacterUtil.CHAR_USELESS == this.charTypes[index]){
@@ -266,9 +299,16 @@ class AnalyzeContext {
 				//输出LexemePath中的lexeme到results集合
 				Lexeme l = path.pollFirst();
 				while(l != null){
+					if(index >= (int)neSplitIndex.get(stackFlag)){
+						stackFlag++;
+					}
+
+					l.setNegation((boolean)nePath.get(stackFlag));
+
 					this.results.add(l);
 					//将index移至lexeme后
-					index = l.getBegin() + l.getLength();					
+					index = l.getBegin() + l.getLength();
+
 					l = path.pollFirst();
 					if(l != null){
 						//输出path内部，词元间遗漏的单字
