@@ -299,7 +299,7 @@ class AnalyzeContext {
 				//输出LexemePath中的lexeme到results集合
 				Lexeme l = path.pollFirst();
 				while(l != null){
-					if(index >= (int)neSplitIndex.get(stackFlag)){
+					if(index > (int)neSplitIndex.get(stackFlag)){
 						stackFlag++;
 					}
 
