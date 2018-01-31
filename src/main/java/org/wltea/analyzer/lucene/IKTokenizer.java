@@ -81,8 +81,8 @@ public final class IKTokenizer extends Tokenizer {
 
 		this.negations.add("无");
 		this.negations.add("未");
-		this.negations.add("否认");
 		this.negations.add("不");
+		this.negations.add("否认");
 		this.negations.add("排除");
 		this.negations.add("阴性");
 	}
@@ -109,7 +109,7 @@ public final class IKTokenizer extends Tokenizer {
 			termAtt.append(s);
 			//设置词元长度
 			int l = nextLexeme.getLength();
-			if(nextLexeme.getNegation()){
+			if(nextLexeme.getNegation() && !this.negations.contains(s)){
 				l += 1;
 			}
 			termAtt.setLength(l);

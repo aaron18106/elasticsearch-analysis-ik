@@ -66,14 +66,14 @@ class AnalyzeContext {
     //原始分词结果集合，未经歧义处理
     private QuickSortSet orgLexemes;    
     //LexemePath位置索引表
-    private Map<Integer , LexemePath> pathMap;    
-    //最终分词结果集
+    private Map<Integer , LexemePath> pathMap;
+	//最终分词结果集
     private LinkedList<Lexeme> results;
 	//分词器配置项
 	private Configuration cfg;
 
 	private Set splitChars;
-	private String[] negation = new String[]{"无","未","否认","不","排除","阴性"};
+	private String[] negation = new String[]{"无","未","不","否认","排除","阴性"};
 	// 无,未,否认,不,排除,阴性
 
 	public AnalyzeContext(Configuration configuration){
@@ -82,8 +82,8 @@ class AnalyzeContext {
     	this.charTypes = new int[BUFF_SIZE];
     	this.buffLocker = new HashSet<String>();
     	this.orgLexemes = new QuickSortSet();
-    	this.pathMap = new HashMap<Integer , LexemePath>();    	
-    	this.results = new LinkedList<Lexeme>();
+    	this.pathMap = new HashMap<Integer , LexemePath>();
+		this.results = new LinkedList<Lexeme>();
 
 		this.splitChars = new HashSet();
 		this.splitChars.add(',');
@@ -264,9 +264,17 @@ class AnalyzeContext {
 		// 获取否定词覆盖区域
 		ArrayList neSplitIndex = new ArrayList();
 		ArrayList nePath = new ArrayList();
+		Map<Integer , LexemePath> fullPathMap = new HashMap<Integer , LexemePath>();
+		// 准备 fullPathMap
+		for (Map.Entry<Integer, LexemePath> entry : this.pathMap.entrySet()) {
+			for(int i=entry.getKey();i<entry.getValue().getPathEnd();i++) {
+				fullPathMap.put(i,entry.getValue());
+			}
+		}
+
 		int i;
 		String s = "";
-
+		int lastI = 0;
 		for(i=0;i<= this.cursor ;i++){
 			s += String.valueOf(this.segmentBuff[i]);
 			if(this.splitChars.contains(this.segmentBuff[i]) || i == this.cursor) {
@@ -274,14 +282,35 @@ class AnalyzeContext {
 				// 判断是否存在否定词;
 				boolean find = false;
 				for(int j=0;j< this.negation.length; j++){
-					if(s.indexOf(this.negation[j]) >= 0){
-						find = true;
-						break;
+					int negationIndex = s.indexOf(this.negation[j]);
+					if(negationIndex >= 0){
+						String negation = this.negation[j];
+						int index = lastI + negationIndex;
+						// 非CJK字符被找到不需要判断
+						if(CharacterUtil.CHAR_USELESS == this.charTypes[index]) {
+							find = true;
+							break;
+						}
+						//从pathMap找出对应index位置的LexemePath
+						LexemePath path = fullPathMap.get(index);
+						// 找不到 path 说明是单字。
+						if(path == null){
+							if(1 == negation.length()){
+								find = true;
+								break;
+							}
+						}else{
+							if(path.getPayloadLength() == negation.length()){
+								find = true;
+								break;
+							}
+						}
 					}
 				}
 
 				nePath.add(find);
 				s = "";
+				lastI = i;
 			}
 		}
 
